@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Modal, Form, Input, message, Row, Col } from 'antd';
+import { Card, Button, Modal, Form, Input, message, Row, Col, Select } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 const { TextArea } = Input;
+const { Option } = Select;
 
 const Dashboard = () => {
     const [items, setItems] = useState([]);
@@ -11,15 +12,23 @@ const Dashboard = () => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [form] = Form.useForm();
+    const [search, setSearch] = useState('');
+    const [minPrice, setMinPrice] = useState('');
+    const [maxPrice, setMaxPrice] = useState('');
+    const [sortBy, setSortBy] = useState('');
+    const [order, setOrder] = useState('');
+    const userId = localStorage.getItem('userId');
 
     useEffect(() => {
         fetchItems();
         fetchUserItems();
-    }, []);
+    }, [search, minPrice, maxPrice, sortBy, order]);
 
     const fetchItems = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/items');
+            const response = await axios.get('http://localhost:5000/api/items', {
+                params: { search, minPrice, maxPrice, sortBy, order }
+            });
             setItems(response.data);
         } catch (error) {
             console.error('Error fetching items:', error);
@@ -32,6 +41,7 @@ const Dashboard = () => {
                 headers: {
                     'x-auth-token': localStorage.getItem('token'),
                 },
+                params: { userId }
             });
             setUserItems(response.data);
         } catch (error) {
@@ -87,6 +97,7 @@ const Dashboard = () => {
                 message.success('Item added successfully');
             }
             fetchUserItems();
+            fetchItems(); // Fetch all items after updating or adding a product
             setIsModalVisible(false);
         } catch (error) {
             console.error('Error saving item:', error);
@@ -99,10 +110,48 @@ const Dashboard = () => {
     };
 
     return (
-        <div>
+        <div style={{ margin: '24px 48px 24px 48px' }}>
             <Button type="primary" onClick={handleAdd} style={{ marginBottom: '20px' }}>
                 Create Item
             </Button>
+            <div style={{ marginBottom: '20px' }}>
+                <Input
+                    placeholder="Search items"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{ width: '200px', marginRight: '10px' }}
+                />
+                <Input
+                    placeholder="Min Price"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    style={{ width: '100px', marginRight: '10px' }}
+                />
+                <Input
+                    placeholder="Max Price"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    style={{ width: '100px', marginRight: '10px' }}
+                />
+                <Select
+                    placeholder="Sort By"
+                    value={sortBy}
+                    onChange={(value) => setSortBy(value)}
+                    style={{ width: '120px', marginRight: '10px' }}
+                >
+                    <Option value="price">Price</Option>
+                    <Option value="createdAt">Date Added</Option>
+                </Select>
+                <Select
+                    placeholder="Order"
+                    value={order}
+                    onChange={(value) => setOrder(value)}
+                    style={{ width: '120px', marginRight: '10px' }}
+                >
+                    <Option value="asc">Ascending</Option>
+                    <Option value="desc">Descending</Option>
+                </Select>
+            </div>
             <h2>Your Items</h2>
             <Row gutter={[16, 16]}>
                 {userItems.map((item) => (
@@ -116,11 +165,12 @@ const Dashboard = () => {
                             ]}
                         >
                             <Card.Meta
-                                title={item.name}
+                                title={`${item.name} (ID: ${item.id})`} // Display item ID in the title
                                 description={
                                     <>
                                         <p>{item.description}</p>
                                         <p>Price: ${item.price}</p>
+                                        <p>Date Added: {new Date(item.createdAt).toLocaleDateString()}</p>
                                     </>
                                 }
                             />
@@ -137,11 +187,12 @@ const Dashboard = () => {
                             cover={<img alt={item.name} src={item.image || 'https://via.placeholder.com/150'} />}
                         >
                             <Card.Meta
-                                title={item.name}
+                                title={`${item.name} (ID: ${item.id})`} // Display item ID in the title
                                 description={
                                     <>
                                         <p>{item.description}</p>
                                         <p>Price: ${item.price}</p>
+                                        <p>Date Added: {new Date(item.createdAt).toLocaleDateString()}</p>
                                     </>
                                 }
                             />
